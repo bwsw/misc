@@ -1,0 +1,910 @@
+TStreams Factory class is a general purpose factory which should be used to create top-level T-streams objects.
+
+To start using the class it must be imported with next line:
+<pre class="lang:scala decode:true" title="Required import line">import com.bwsw.tstreams.env.{TStreamsFactory, TSF_Dictionary}</pre>
+As shown in the example above there are two classes - the object class TSF_Dictionary and the regular class TStreamsFactory that are explained later.
+<h1>Class TStreamsFactory</h1>
+A top level "god-like" class that manages the creation of producers, subscribers, consumers, and streams.
+<h2>Methods</h2>
+<h3>Constructor</h3>
+<pre class="lang:scala decode:true" title="TStreams Factory object constructor">val factory = new TStreamsFactory()</pre>
+The constructor allows creating the object for further usage.
+<h3>setProperty method</h3>
+The method allows setting factory properties which are used when the factory generates an object. It has next signature:
+<pre class="lang:scala decode:true " title="setProperty method signature">def setProperty(key: String, value: Any): TStreamsFactory</pre>
+Please, note that the method returns the same factory object which gives a developer a way to chain several setProperty methods together as shown in the next snippet:
+<pre class="lang:scala decode:true" title="Several setPropery can be chained together">factory.setProperty(TSF_Dictionary.Metadata.Cluster.NAMESPACE, Setup.KS).                 
+    setProperty(TSF_Dictionary.Data.Cluster.NAMESPACE, "test").                    
+    setProperty(TSF_Dictionary.Producer.BIND_PORT, 18001).                          
+    setProperty(TSF_Dictionary.Consumer.Subscriber.BIND_PORT, 18002).               
+    setProperty(TSF_Dictionary.Consumer.Subscriber.PERSISTENT_QUEUE_PATH, null).  
+    setProperty(TSF_Dictionary.Stream.NAME, "test-stream").                          
+    setProperty(TSF_Dictionary.Consumer.Subscriber.POLLING_FREQUENCY_DELAY, 1000)</pre>
+<em>Important notice #1: if the factory instance is "<strong>locked</strong>" (see next) setProperty will raise<strong> IllegalStateException</strong>.</em>
+
+<em>Important notice #2: if an unknown key is used with setProperty method it will raise <strong>IllegalArgumentException</strong>. For all possible keys see <strong>TSF_Dictionary</strong> object next.</em>
+
+Keep in mind that almost all of default TStreamsFactory settings are good and You don't need to change them. Below (in the chapter for the TSF_Dictionary object), all the options are described and those that should be changed are outlined with <strong>bold</strong>.
+<h3>getProperty method</h3>
+The method is not widely used. It has next signature:
+<pre class="lang:scala decode:true" title="getProperty method">def getProperty(key: String): Any</pre>
+In general, a developer should use it only to get a default value which he (or she) doesn't set but which is set for the system by default.
+<h3>lock method</h3>
+The lock method should be used to freeze factory options and prevent them from further alterations. It can be used when a developer configures a basic "golden image" factory object. The method has next signature:
+<pre class="lang:scala decode:true" title="Lock method signature">def lock():Unit</pre>
+Important notice: if the factory instance is "<strong>locked</strong>" (see later) setProperty will raise<strong> IllegalStateException</strong>.
+
+Usage example:
+<pre class="lang:scala decode:true" title="factory lock usage">factory.lock()</pre>
+<h3>copy method</h3>
+The copy method is useful when a developer wishes to create a copy of a factory object from an existing factory object (actually the idea is to create an alterable factory object from a locked golden image factory object). The method has next signature:
+<pre class="lang:scala decode:true" title="Copy method signature">def copy(): TStreamsFactory</pre>
+Usage example:
+<pre class="lang:scala decode:true" title="factory lock usage">val newfactory = factory.copy()</pre>
+<h3 class="lang:scala decode:true " title="factory lock usage"><span style="color: inherit; font-size: inherit;">getDataStorage method</span></h3>
+The method returns IDataStorage object. Normally a developer doesn't use the method because IDataStorage object is used by producers, subscribers, consumers internally. The method has next signature:
+<pre class="lang:scala decode:true" title="getDataStorage method signature">def getDataStorage(): IStorage[Array[Byte]]</pre>
+<h3>getMetadataStorage method</h3>
+The method returns MetadataStorage object. Normally a developer doesn't use the method because MetadataStorage object is used by producers, subscribers, consumers internally. The method has next signature:
+<pre class="lang:scala decode:true " title="getMetadataStorage method">def getMetadataStorage(): MetadataStorage</pre>
+<h3>getStream method</h3>
+The method returns TStream object. Normally a developer doesn't use the method because MetadataStorage object is used by producers, subscribers, consumers internally. The method has next signature:
+<pre class="lang:scala decode:true " title="getStream method">def getStream(): TStream[Array[Byte]]</pre>
+<h3>getProducer method</h3>
+The method returns a producer object instance. It should be used to create new producers. The method has next signature:
+<pre class="lang:scala decode:true" title="getProducer method">def getProducer[T](name:          String,
+                   transactionGenerator:  ITransactionGenerator,
+                   converter:     IConverter[T, Array[Byte]],
+                   partitions:    Set[Int],
+                   isLowPriority: Boolean = false): Producer[T]</pre>
+where
+<table dir="ltr" border="1" cellspacing="0" cellpadding="0"><colgroup> <col width="100" /> <col width="179" /> <col width="100" /> <col width="100" /></colgroup>
+<tbody>
+<tr>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Parameter&quot;}"><strong>Parameter</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Meaning&quot;}"><strong>Meaning</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Domain&quot;}"><strong>Domain</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Example&quot;}"><strong>Example</strong></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;name&quot;}">name</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;a name of the producer object&quot;}">A name of the producer object</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;short string&quot;}">short string</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;\&quot;producer-1\&quot;&quot;}">"producer-1"</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;txnGenerator&quot;}">transactioncGenerator</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;source of transaction UUIDs which partition masters will use to generate new transactions for producers.&quot;}">A source of transaction IDs which partition masters will use to generate new transactions for the producer.</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;IUUIDGenerator interface&quot;}">ITransactionGenerator interface</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;new LocalTimeUUIDGenerator&quot;}">new LocalTransactionGenerator</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;converter&quot;}">converter</td>
+<td>An object which converts user-side data to internal data (Array[Byte])</td>
+<td>IConverter[T, Array[Byte]]</td>
+<td>new StringToArrayByteConverter</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;partitions&quot;}">partitions</td>
+<td> A set of partitions which the producer will use in operation</td>
+<td> Set[Int]</td>
+<td> Set(0)</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;isLowPriority&quot;}">isLowPriority</td>
+<td>Either the producer should avoid of being a master (true) or not (false)</td>
+<td>Boolean</td>
+<td> true</td>
+</tr>
+</tbody>
+</table>
+An example of the usage is demonstrated below:
+<pre class="lang:scala decode:true" title="getProducer example">import com.bwsw.tstreams.generator.LocalTransactionGenerator
+import com.bwsw.tstreams.converter.StringToArrayByteConverter
+
+val producer = factory.getProducer[String](
+                name          = "producer-1",                     
+                txnGenerator  = new LocalTransactionGenerator,  
+                converter     = new StringToArrayByteConverter, 
+                partitions    = Set(0),                       
+                isLowPriority = false)</pre>
+All the parameters like stream name, contact points for data and metadata stores are received from the factory. The method only specifies current producer-related parameters. So, for example, a developer also could request another producer for partition 1, etc...
+<h3>getConsumer method</h3>
+The method returns a consumer object instance (it's for a <strong>polling</strong> interface, for a <strong>pub-sub</strong> interface loot at the <strong>getSubscriber</strong> method below). It should be used to create new consumers. The method has next signature:
+<pre class="lang:scala decode:true" title="getProducer method">def getConsumer[T](name:              String,
+                   txnGenerator:      ITransactionGenerator,
+                   converter:         IConverter[Array[Byte], T],
+                   partitions:        Set[Int],
+                   offset:            IOffset,
+                   isUseLastOffset:   Boolean = true): Consumer[T]</pre>
+where
+<table dir="ltr" border="1" cellspacing="0" cellpadding="0"><colgroup> <col width="100" /> <col width="606" /> <col width="153" /> <col width="184" /></colgroup>
+<tbody>
+<tr>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Parameter&quot;}"><strong>Parameter</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Meaning&quot;}"><strong>Meaning</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Domain&quot;}"><strong>Domain</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Example&quot;}"><strong>Example</strong></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;name&quot;}">name</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;a name of the consumer object&quot;}">a name of the consumer object</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;short string&quot;}">short string</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;\&quot;consumer-1\&quot;&quot;}">"consumer-1"</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;txnGenerator&quot;}">txnGenerator</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;source of transaction UUIDs which partition masters will use to generate new transactions for producers.&quot;}">source of transaction IDs which the consumer will use</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;IUUIDGenerator interface&quot;}">ITransactionGenerator interface</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;new LocalTimeUUIDGenerator&quot;}">new LocalTransactionGenerator</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;converter&quot;}">converter</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;An object which converts from internal data (Array[Byte]) to user-side data &quot;}">An object which converts from internal data (Array[Byte]) to user-side data</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;IConverter[Array[Byte], T]&quot;}">IConverter[Array[Byte], T]</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;new ArrayByteToStringConverter&quot;}">new ArrayByteToStringConverter</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;partitions&quot;}">partitions</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;A set of partitions from which consumer will read transactions&quot;}">A set of partitions from which the consumer will read transactions</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Set[Int]&quot;}">Set[Int]</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Set(0)&quot;}">Set(0)</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;offset&quot;}">offset</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;From what historical position consumer will read transactions&quot;}">From what historical position the consumer will read transactions</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;IOffset&quot;}">IOffset</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Oldest&quot;}">Oldest</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;isUseLastOffset&quot;}">isUseLastOffset</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Is consumer should start read the data from the point where it was stopped, crashed last time (where last checkpoint occured)&quot;}">Is the consumer should start read the data from the point where it was stopped, crashed last time (where the last checkpoint had occurred)</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Boolean&quot;}">Boolean</td>
+<td> true</td>
+</tr>
+</tbody>
+</table>
+An example of the usage is demonstrated next:
+<pre class="lang:scala decode:true" title="getConsumer example from t-streams-hello">import com.bwsw.tstreams.generator.LocalTransactionGenerator
+import com.bwsw.tstreams.converter.ArrayByteToStringConverter
+import com.bwsw.tstreams.agents.consumer.Offset.Newest
+
+
+val consumer = factory.getConsumer[String](
+      name            = "consumer-1",              
+      txnGenerator    = new LocalTransactionGenerator,
+      converter       = new ArrayByteToStringConverter,
+      partitions      = Set(0),
+      offset          = Newest,
+      isUseLastOffset = false)</pre>
+All the information like stream name, contact points for data and metadata stores are received from the factory. The method only specifies current consumer-related parameters. So, for example, a developer also could request another one consumer for partition 1, etc...
+<h3>getSubscriber method</h3>
+The method returns subscriber object instance (it's for <strong>pub-sub</strong> interface, for <strong>polling</strong> interface loot at <strong>getConsumer</strong> method before). It should be used to create new subscribers. The method has next signature:
+<pre class="lang:scala decode:true" title="getSubscriber method signature">def getSubscriber[T](name:         String,
+                     txnGenerator: ITransactionGenerator,
+                     converter:    IConverter[Array[Byte], T],
+                     partitions:   Set[Int],
+                     callback:     Callback[T],
+                     offset: IOffset,
+                     isUseLastOffset: Boolean = true): Subscriber[T]</pre>
+where
+<table dir="ltr" border="1" cellspacing="0" cellpadding="0"><colgroup> <col width="100" /> <col width="606" /> <col width="153" /> <col width="184" /></colgroup>
+<tbody>
+<tr>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Parameter&quot;}"><strong>Parameter</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Meaning&quot;}"><strong>Meaning</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Domain&quot;}"><strong>Domain</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Example&quot;}"><strong>Example</strong></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;name&quot;}">name</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;a name of the consumer object&quot;}">a name of the consumer object</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;short string&quot;}">short string</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;\&quot;consumer-1\&quot;&quot;}">"subscriber-1"</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;txnGenerator&quot;}">txnGenerator</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;source of transaction UUIDs which partition masters will use to generate new transactions for producers.&quot;}">source of transaction IDs which partition masters will use to generate new transactions for producers.</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;IUUIDGenerator interface&quot;}">ITransactionGenerator interface</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;new LocalTimeUUIDGenerator&quot;}">new LocalTransactionGenerator</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;converter&quot;}">converter</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;An object which converts from internal data (Array[Byte]) to user-side data &quot;}">An object which converts from internal data (Array[Byte]) to user-side data</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;IConverter[Array[Byte], T]&quot;}">IConverter[Array[Byte], T]</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;new ArrayByteToStringConverter&quot;}">new ArrayByteToStringConverter</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;partitions&quot;}">partitions</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;A set of partitions from which consumer will read transactions&quot;}">A set of partitions from which consumer will read transactions</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Set[Int]&quot;}">Set[Int]</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Set(0)&quot;}">Set(0)</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;callback&quot;}">callback</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;A callback that will be called when new transaction will be ready for processing&quot;}">A callback that will be called when a new transaction will be ready for processing</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Callback[T]&quot;}">Callback[T]</td>
+<td>
+<pre class="lang:scala decode:true">new Callback[String] {
+        override def onEvent(
+              op:              TransactionOperator[String], 
+              txn:             Transaction[String]): Unit = {
+              // some stuff
+        }
+}</pre>
+</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;offset&quot;}">offset</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;From what historical position consumer will read transactions&quot;}">From what historical position consumer will read transactions</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;IOffset&quot;}">IOffset</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Oldest&quot;}">Oldest</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;isUseLastOffset&quot;}">isUseLastOffset</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Is consumer should start read the data from the point where it was stopped, crashed last time (where last checkpoint occured)&quot;}">Is consumer should start read the data from the point where it was stopped, crashed last time (where the last checkpoint had occurred)</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Boolean&quot;}">Boolean</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<strong>Note</strong>: TransactionOperator is the interface for  Consumer and has the same methods. Actually, a developer can cast it to Consumer class instance.
+<h3>close method</h3>
+The close method is used to end the factory operation, all further calls to methods will raise IllegalStateException:
+<pre class="lang:scala decode:true" title="Copy method signature">def close(): Unit</pre>
+Usage example:
+<pre class="lang:scala decode:true" title="factory lock usage">factory.close()</pre>
+<h1>Object TSF_Dictionary</h1>
+The object contains all valid options that can be used with setProperty method.
+<h2>TSF_Dictionary.Metadata.Cluster keyset</h2>
+The keyset includes parameters for the metadata storage. Parameters which are marked with bold should be set-up properly, other ones are for thin tuning.
+<table dir="ltr" border="1" cellspacing="0" cellpadding="0"><colgroup> <col width="223" /> <col width="287" /> <col width="287" /> <col width="312" /> <col width="223" /> <col width="100" /></colgroup>
+<tbody>
+<tr>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Key&quot;}"><strong>Key</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Textual constant&quot;}"><strong>Textual constant</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Purpose&quot;}"><strong>Purpose</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Domain&quot;}"><strong>Domain</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Example&quot;}"><strong>Example</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Default&quot;}">Default</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;ENDPOINTS&quot;}"><strong>ENDPOINTS</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;metadata.cluster.endpoints&quot;}">metadata.cluster.endpoints</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;C* ring where metadata is stored&quot;}">C* ring where the metadata is stored</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Comma-separated string host:port,host:port,host:port&quot;}">Comma-separated string host:port,host:port,host:port</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;1.1.1.1:9042,1.1.1.2:9042&quot;}">1.1.1.1:9042,1.1.1.2:9042</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;localhost:9042&quot;}">localhost:9042</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;NAMESPACE&quot;}"><strong>NAMESPACE</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;metadata.cluster.namespace&quot;}">metadata.cluster.namespace</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;C* keyspace&quot;}">C* keyspace where the metadata is stored</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Valid keyspace string&quot;}">Valid keyspace string</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;t_streams&quot;}">t_streams</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;test&quot;}">test</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;LOGIN&quot;}"><strong>LOGIN</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;metadata.cluster.login&quot;}">metadata.cluster.login</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;C* login if required&quot;}">C* login if required</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Valid login string&quot;}">Valid login string</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;cassandra&quot;}">cassandra</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;null&quot;}">null</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;PASSWORD&quot;}"><strong>PASSWORD</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;metadata.cluster.password&quot;}">metadata.cluster.password</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;C* password if required&quot;}">C* password if required</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Valid password string&quot;}">Valid password string</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;secret&quot;}">secret</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;null&quot;}">null</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;LOCAL_DC&quot;}"><strong>LOCAL_DC</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;metadata.cluster.local-dc&quot;}">metadata.cluster.local-dc</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Local DC for DC-aware C* policy&quot;}">Local DC for DC-aware C* policy</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Valid DC name string&quot;}">Valid DC name string</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;dc1&quot;}">dc1</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;null&quot;}">null</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;KEEP_ALIVE_MS&quot;}">KEEP_ALIVE_MS</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;metadata.cluster.keep-alive-ms&quot;}">metadata.cluster.keep-alive-ms</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;C* setting for keep-alive&quot;}">C* setting for keep-alive</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 1000 and 10000&quot;}">Number between 1000 and 10000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:2000}">2000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:5000}">5000</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;MIN_RECONNECTION_DELAY_MS&quot;}">MIN_RECONNECTION_DELAY_MS</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;metadata.cluster.min-reconnection-delay-ms&quot;}">metadata.cluster.min-reconnection-delay-ms</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;C* reconnection delay min&quot;}">C* reconnection delay min</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 500 and 5000&quot;}">Number between 500 and 5000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:1000}">1000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:1000}">1000</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;MAX_RECONNECTION_DELAY_MS&quot;}">MAX_RECONNECTION_DELAY_MS</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;metadata.cluster.max-reconnection-delay-ms&quot;}">metadata.cluster.max-reconnection-delay-ms</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;C* reconnection delay max&quot;}">C* reconnection delay max</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 5000 and 60000&quot;}">Number between 5000 and 60000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:60000}">60000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:60000}">60000</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;QUERY_RETRY_COUNT&quot;}">QUERY_RETRY_COUNT</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;metadata.cluster.query-retry-count&quot;}">metadata.cluster.query-retry-count</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;C* amount of retris for failed query&quot;}">C* amount of retris for failed query</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 1 and 20&quot;}">Number between 1 and 20</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:15}">15</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:10}">10</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;CONNECTION_TIMEOUT_MS&quot;}">CONNECTION_TIMEOUT_MS</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;metadata.cluster.connection-timeout-ms&quot;}">metadata.cluster.connection-timeout-ms</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;C* connection timeout&quot;}">C* connection timeout</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 1000 and 60000&quot;}">Number between 1000 and 60000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:6000}">6000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:5000}">5000</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;READ_TIMEOUT_MS&quot;}">READ_TIMEOUT_MS</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;metadata.cluster.read-timeout-ms&quot;}">metadata.cluster.read-timeout-ms</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;C* read timeout&quot;}">C* read timeout</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 10000 and 600000&quot;}">Number between 10000 and 600000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:120000}">120000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:120000}">120000</td>
+</tr>
+</tbody>
+</table>
+Textual constants can be used when the configuration is read from external files but for in-code style it is better to use predefined constants.
+<h2>TSF_Dictionary.Data.Cluster keyset</h2>
+The keyset includes parameters for Metadata storage. Parameters which are marked with bold should be set-up properly, other ones are for thin tuning.
+<table dir="ltr" border="1" cellspacing="0" cellpadding="0"><colgroup> <col width="290" /> <col width="301" /> <col width="287" /> <col width="573" /> <col width="223" /> <col width="100" /> <col width="100" /></colgroup>
+<tbody>
+<tr>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Key&quot;}"><strong>Key</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Textual constant&quot;}"><strong>Textual constant</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Purpose&quot;}"><strong>Purpose</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Domain&quot;}"><strong>Domain</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Example&quot;}"><strong>Example</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Default&quot;}"><strong>Default</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Comments&quot;}"><strong>Comments</strong></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Consts.DATA_DRIVER_AEROSPIKE&quot;}">Consts.DATA_DRIVER_AEROSPIKE</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;aerospike&quot;}">aerospike</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Aerospike engine is used to store data&quot;}">Aerospike engine is used to store data</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;aerospike&quot;}">aerospike</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;aerospike&quot;}">aerospike</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;aerospike&quot;}">aerospike</td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Consts.DATA_DRIVER_CASSANDRA&quot;}">Consts.DATA_DRIVER_CASSANDRA</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;cassandra&quot;}">cassandra</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Cassandra engine is used to store data&quot;}">Cassandra engine is used to store data</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;cassandra&quot;}">cassandra</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;cassandra&quot;}">cassandra</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;cassandra&quot;}">cassandra</td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Consts.DATA_DRIVER_HAZELCAST&quot;}">Consts.DATA_DRIVER_HAZELCAST</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;hazelcast&quot;}">hazelcast</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Hazelcast engine is used to store data&quot;}">Hazelcast engine is used to store data</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;hazelcast&quot;}">hazelcast</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;hazelcast&quot;}">hazelcast</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;hazelcast&quot;}">hazelcast</td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;DRIVER&quot;}"><strong>DRIVER</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;data.cluster.driver&quot;}">data.cluster.driver</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Specify data driver used to store data&quot;}">Specify a data driver that is used to store data</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;TSF_Dictionary.Data.Cluster.Consts.DATA_DRIVER_{AEROSPIKE, CASSANDRA, HAZELCAST}&quot;}">TSF_Dictionary.Data.Cluster.Consts.DATA_DRIVER _{AEROSPIKE, CASSANDRA, HAZELCAST}</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;aerospike&quot;}">aerospike</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;aerospike&quot;}">aerospike</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Hazelcast is trivial driver used for integration tests, Cassandra is for only-cassandra usage.&quot;}">Hazelcast is trivial driver used for integration tests, Cassandra is for only-cassandra usage.</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;ENDPOINTS&quot;}"><strong>ENDPOINTS</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;data.cluster.endpoints&quot;}">data.cluster.endpoints</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Cluster where data is stored&quot;}">A cluster where data is stored</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Comma-separated string host:port,host:port,host:port&quot;}">Comma-separated string host:port,host:port,host:port</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;1.1.1.1:9042,1.1.1.2:9042&quot;}">1.1.1.1:9042,1.1.1.2:9042</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;localhost:9042&quot;}">localhost:9042</td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;NAMESPACE&quot;}"><strong>NAMESPACE</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;data.cluster.namespace&quot;}">data.cluster.namespace</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;keyspace &quot;}">A keyspace</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Valid keyspace string for specified type of datastore&quot;}">Valid keyspace string for specified type of datastore</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;t_streams&quot;}">t_streams</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;test&quot;}">test</td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;LOGIN&quot;}"><strong>LOGIN</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;data.cluster.login&quot;}">data.cluster.login</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;login if required&quot;}">Login if required</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Valid login string&quot;}">Valid login string</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;cassandra&quot;}">cassandra</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;null&quot;}">null</td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;PASSWORD&quot;}"><strong>PASSWORD</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;data.cluster.password&quot;}">data.cluster.password</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;password if required&quot;}">Password if required</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Valid password string&quot;}">Valid password string</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;secret&quot;}">secret</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;null&quot;}">null</td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Cassandra.LOCAL_DC&quot;}"><strong>Cassandra.LOCAL_DC</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;data.cluster.cassandra.local-dc&quot;}">data.cluster.cassandra.local-dc</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Local DC for DC-aware C* policy&quot;}">Local DC for DC-aware C* policy</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Valid DC name string&quot;}">Valid DC name string</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;dc1&quot;}">dc1</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;null&quot;}">null</td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Cassandra.KEEP_ALIVE_MS&quot;}">Cassandra.KEEP_ALIVE_MS</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;data.cluster.cassandra.keep-alive-ms&quot;}">data.cluster.cassandra.keep-alive-ms</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;C* setting for keep-alive&quot;}">C* setting for keep-alive</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 1000 and 10000&quot;}">Number between 1000 and 10000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:2000}">2000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:5000}">5000</td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Cassandra.MIN_RECONNECTION_DELAY_MS&quot;}">Cassandra.MIN_RECONNECTION_DELAY_MS</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;data.cluster.cassandra.min-reconnection-delay-ms&quot;}">data.cluster.cassandra.min-reconnection-delay-ms</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;C* reconnection delay min&quot;}">C* reconnection delay min</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 500 and 5000&quot;}">Number between 500 and 5000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:1000}">1000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:1000}">1000</td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Cassandra.MAX_RECONNECTION_DELAY_MS&quot;}">Cassandra.MAX_RECONNECTION_DELAY_MS</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;data.cluster.cassandra.max-reconnection-delay-ms&quot;}">data.cluster.cassandra.max-reconnection-delay-ms</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;C* reconnection delay max&quot;}">C* reconnection delay max</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 5000 and 60000&quot;}">Number between 5000 and 60000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:60000}">60000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:60000}">60000</td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Cassandra.QUERY_RETRY_COUNT&quot;}">Cassandra.QUERY_RETRY_COUNT</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;data.cluster.cassandra.query-retry-count&quot;}">data.cluster.cassandra.query-retry-count</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;C* amount of retris for failed query&quot;}">C* amount of retris for failed query</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 1 and 20&quot;}">Number between 1 and 20</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:15}">15</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:10}">10</td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Cassandra.CONNECTION_TIMEOUT_MS&quot;}">Cassandra.CONNECTION_TIMEOUT_MS</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;data.cluster.cassandra.connection-timeout-ms&quot;}">data.cluster.cassandra.connection-timeout-ms</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;C* connection timeout&quot;}">C* connection timeout</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 1000 and 60000&quot;}">Number between 1000 and 60000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:6000}">6000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:5000}">5000</td>
+<td></td>
+</tr>
+<tr>
+<td>Cassandra.READ_TIMEOUT_MS</td>
+<td>data.cluster.cassandra.read-timeout-ms</td>
+<td>C* read timeout</td>
+<td>Number between 10000 and 600000</td>
+<td>120000</td>
+<td>120000</td>
+<td></td>
+</tr>
+<tr>
+<td>Cassandra.LOCAL_CONNECTIONS_PER_HOST</td>
+<td>data.cluster.cassandra.local-connections-per-host</td>
+<td>C* read timeout</td>
+<td>Number between 10000 and 600000</td>
+<td>120000</td>
+<td>120000</td>
+<td></td>
+</tr>
+<tr>
+<td>Cassandra.<span class="pl-en">REMOTE_CONNECTIONS_PER_HOST</span></td>
+<td>data.cluster.cassandra.remote-connections-per-host</td>
+<td>C* read timeout</td>
+<td>Number between 10000 and 600000</td>
+<td>120000</td>
+<td>120000</td>
+<td></td>
+</tr>
+<tr>
+<td>Cassandra.LOCAL_REQUESTS_PER_CONNECTION</td>
+<td>data.cluster.cassandra.local-requests-per-connection</td>
+<td>C* read timeout</td>
+<td>Number between 10000 and 600000</td>
+<td>120000</td>
+<td>120000</td>
+<td></td>
+</tr>
+<tr>
+<td>Cassandra.REMOTE_REQUESTS_PER_CONNECTION</td>
+<td>data.cluster.cassandra.remote-requests-per-connection</td>
+<td>C* read timeout</td>
+<td>Number between 10000 and 600000</td>
+<td>120000</td>
+<td>120000</td>
+<td></td>
+</tr>
+<tr>
+<td>Cassandra.HEARTBEAT_INTERVAL_SECONDS</td>
+<td>data.cluster.cassandra.heartbeat-interval-seconds</td>
+<td>C* read timeout</td>
+<td>Number between 10000 and 600000</td>
+<td>120000</td>
+<td>120000</td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Aerospike.WRITE_POLICY&quot;}">Aerospike.WRITE_POLICY</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;data.cluster.aerospike.write-policy&quot;}">data.cluster.aerospike.write-policy</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Defines how aerospike will write data&quot;}">Defines how aerospike will write data</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;WritePolicy&quot;}">WritePolicy</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;new WritePolicy(...)&quot;}">new WritePolicy(...)</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;null&quot;}">null</td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Aerospike.READ_POLICY&quot;}">Aerospike.READ_POLICY</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;data.cluster.aerospike.read-policy&quot;}">data.cluster.aerospike.read-policy</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Defines how aerospike will read data&quot;}">Defines how aerospike will read data</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;ReadPolicy&quot;}">ReadPolicy</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;new ReadPolicy(...)&quot;}">new ReadPolicy(...)</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;null&quot;}">null</td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Aerospike.CLIENT_POLICY&quot;}">Aerospike.CLIENT_POLICY</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;data.cluster.aerospike.client-policy&quot;}">data.cluster.aerospike.client-policy</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Defines how to connect&quot;}">Defines how to connect</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;ClientPolicy&quot;}">ClientPolicy</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;new ClientPolicy(...)&quot;}">new ClientPolicy(...)</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;null&quot;}">null</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+Textual constants can be used when the configuration is read from external files but for in-code style it is better to use predefined constants.
+<h2>TSF_Dictionary.Coordination keyset</h2>
+The keyset defines where Zookeeper cluster is located and what prefix to use with Zookeeper.
+<table dir="ltr" border="1" cellspacing="0" cellpadding="0"><colgroup> <col width="290" /> <col width="301" /> <col width="287" /> <col width="573" /> <col width="223" /> <col width="100" /></colgroup>
+<tbody>
+<tr>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Key&quot;}"><strong>Key</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Textual constant&quot;}"><strong>Textual constant</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Purpose&quot;}"><strong>Purpose</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Domain&quot;}"><strong>Domain</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Example&quot;}"><strong>Example</strong></td>
+<td style="text-align: center;" data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Default&quot;}"><strong>Default</strong></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;ENDPOINTS&quot;}"><strong>ENDPOINTS</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;coordination.endpoints&quot;}">coordination.endpoints</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Define Zookeeper cluster hosts&quot;}">Zookeeper cluster hosts</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;string host1:port1,host2:port2,host3:port3,...&quot;}">string host1:port1,host2:port2,host3:port3,...</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;localhost:2181,1.1.1.1:2181&quot;}">localhost:2181,1.1.1.1:2181</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;localhost:2181&quot;}">localhost:2181</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;ROOT&quot;}"><strong>ROOT</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;coordination.root&quot;}">coordination.root</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Define Zookeeper prefix &quot;}">Zookeeper prefix</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;valid zookeper path string like /a/b/c&quot;}">valid zookeper path string like /a/b/c</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;/t-streams&quot;}">/t-streams</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;/t-streams&quot;}">/t-streams</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;TTL&quot;}">TTL</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;coordination.ttl&quot;}">coordination.ttl</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Define Zookeeper session timeout&quot;}">Zookeeper session timeout</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 1 and 30 seconds&quot;}">Number between 1 and 10 seconds</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:10}">10</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:7}">5</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;CONNECTION_TIMEOUT&quot;}">CONNECTION_TIMEOUT</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;coordination.connection-timeout&quot;}">coordination.connection-timeout</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Define Zookeeper connection timeout&quot;}">Zookeeper connection timeout</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 1 and 30 seconds&quot;}">Number between 1 and 10 seconds</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:10}">10</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:7}">5</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;CONNECTION_TIMEOUT&quot;}">PARTITION_REDISTRIBUTION_DELAY</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;coordination.connection-timeout&quot;}">coordination.partition-redistribution-delay</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Define Zookeeper connection timeout&quot;}">Interval between every two updates on partition redistribution</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 1 and 30 seconds&quot;}">Number between 1 and 100 seconds</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:10}">10</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:7}">2</td>
+</tr>
+</tbody>
+</table>
+<h2>TSF_Dictionary.Stream keyset</h2>
+This scope is about a stream where producers, subscribers and consumers will operate. If several different streams are used then it's convinient to lock and copy the factory instance before every stream configuration.
+<table dir="ltr" border="1" cellspacing="0" cellpadding="0"><colgroup> <col width="290" /> <col width="301" /> <col width="287" /> <col width="573" /> <col width="223" /> <col width="100" /></colgroup>
+<tbody>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Key&quot;}">Key</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Textual constant&quot;}">Textual constant</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Purpose&quot;}">Purpose</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Domain&quot;}">Domain</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Example&quot;}">Example</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Default&quot;}">Default</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;NAME&quot;}"><strong>NAME</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;stream.name&quot;}">stream.name</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Defines stream name which will be used by producers, subscribers and consumers&quot;}">The stream name that will be used by producers, subscribers and consumers</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;String&quot;}">String</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;mystream&quot;}">mystream</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;test&quot;}">test</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;PARTITIONS&quot;}"><strong>PARTITIONS</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;stream.partitions&quot;}">stream.partitions</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Total amount of partitions which stream can have&quot;}">Total amount of partitions that stream can have</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number &gt; 0&quot;}">Number &gt; 0</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:10}">10</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:1}">1</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;TTL&quot;}"><strong>TTL</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;stream.ttl&quot;}">stream.ttl</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;How long transactions and their data will be available (before purge)&quot;}">How long transactions and their data will be available (before purge)</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number &gt; 60 seconds&quot;}">Number &gt; 60 seconds</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:3600}">3600</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:86400}">86400</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;DESCRIPTION&quot;}">DESCRIPTION</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;stream.description&quot;}">stream.description</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Custom description&quot;}">Custom description</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;String&quot;}">String</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;My stream&quot;}">My stream</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Test stream&quot;}">Test stream</td>
+</tr>
+</tbody>
+</table>
+<h2>TSF_Dictionary.Producer keyset</h2>
+The keyset is used to setup producer objects.
+<table dir="ltr" border="1" cellspacing="0" cellpadding="0"><colgroup> <col width="291" /> <col width="255" /> <col width="294" /> <col width="573" /> <col width="223" /> <col width="100" /></colgroup>
+<tbody>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Key&quot;}">Key</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Textual constant&quot;}">Textual constant</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Purpose&quot;}">Purpose</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Domain&quot;}">Domain</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Example&quot;}">Example</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Default&quot;}">Default</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;THREAD_POOL&quot;}"><strong>THREAD_POOL</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;producer.thread-pool&quot;}">producer.thread-pool</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;When producer acts like partition master thread pool defines amount of workers which handle workload&quot;}">When producer acts like partition master thread pool defines amount of workers which handle workload</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number &gt; 0&quot;}">Number, between 1 and 64</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;mystream&quot;}">1</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;test&quot;}">4</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;THREAD_POOL_PUBLISHER_TREADS_AMOUNT&quot;}"><strong>THREAD_POOL_PUBLISHER_TREADS_AMOUNT</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;producer.thread-pool.publisher-threads-amount&quot;}">producer.thread-pool.publisher-threads-amount</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;When producer acts like partition master thread pool defines amount of workers which handle workload&quot;}">When producer acts like partition master amount of publisher threads in the thread pool defines how fast events will be delivered to subscribers. The parameter is important if there are a lot of subscribers for one produceer</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number &gt; 0&quot;}">Number, between 1 and 32</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;mystream&quot;}">2</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;test&quot;}">1</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;BIND_HOST&quot;}"><strong>BIND_HOST</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;producer.bind-host&quot;}">producer.bind-host</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Host to bind to&quot;}">Host to bind to</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;String, hostname or ip&quot;}">String, hostname or ip</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:10}">localhost</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:1}">localhost</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;BIND_PORT&quot;}"><strong>BIND_PORT</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;producer.bind-port&quot;}">producer.bind-port</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Port to bind to&quot;}">Port to bind to</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number or new RandomBind(from, to)&quot;}">Number or (from, to)</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:3600}">18000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:86400}">(40000,50000)</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;TRANSPORT_TIMEOUT&quot;}">TRANSPORT_TIMEOUT</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;producer.transport-timeout&quot;}">producer.transport-timeout</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Timeout defines response timeout after which master is considered to be unresponding&quot;}">Timeout defines response timeout after which master is considered to be unresponding</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number, seconds between 1 and 10&quot;}">Number, seconds between 1 and 10</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:5}">5</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:5}">5</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;TRANSPORT_RETRY_COUNT&quot;}">TRANSPORT_RETRY_COUNT</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;producer.transport-retry-count&quot;}">producer.transport-retry-count</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Amount of retries if TRANSPORT_RETRY_COUNT achieved&quot;}">Amount of retries if TRANSPORT_RETRY_COUNT achieved</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number &gt; 0&quot;}">Number &gt; 0</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:3}">3</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:3}">3</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;TRANSPORT_RETRY_DELAY&quot;}">TRANSPORT_RETRY_DELAY</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;producer.transport-retry-delay&quot;}">producer.transport-retry-delay</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;A pause to wait between retrials&quot;}">A pause to wait between retrials</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number, seconds &gt; 0&quot;}">Number, seconds &gt; 0</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:5}">5</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:5}">5</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Transaction.DISTRIBUTION_POLICY&quot;}"><strong>MASTER_BOOTSTRAP_MODE</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;producer.transaction.distribution-policy&quot;}">producer.master-bootstrap-mode</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;If transaction is opened without specific partition request then distribution policy is used to get next partition. See Transacton.Consts.DISTRIBUTION_POLICY_*&quot;}">It defines how the producer will act during the bootstrap and later regarding of acquiring mastership for related partitions.</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;TSF_Dictionary.Producer.Transaction.Consts.DISTRIBUTION_POLICY_RR&quot;}">Consts.MASTER_BOOTSTRAP_MODE_
+
+FULL, LAZY, LAZY_VOTE</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;TSF_Dictionary.Producer.Transaction.Consts.DISTRIBUTION_POLICY_RR&quot;}"> LAZY</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;TSF_Dictionary.Producer.Transaction.Consts.DISTRIBUTION_POLICY_RR&quot;}">FULL</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Transacton.Consts.DISTRIBUTION_POLICY_RR&quot;}">Consts.{MASTER_BOOTSTRAP_MODE_FULL, MASTER_BOOTSTRAP_MODE_LAZY, MASTER_BOOTSTRAP_MODE_LAZY_VOTE}</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;round-robin&quot;}">Constants for master partition ownership distribution</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Currently only one distribution policy exists - round robin&quot;}">FULL is for aggressive mode when all the spare partitions are taken first and rebalancing algorithm launched next,
+
+LAZY is absolutely passive, driven only by errors.
+
+LAZY_VOTE is as LAZY but adds rebalancing algorithm launched after the bootstrap.</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Transaction.TTL&quot;}">Transaction.TTL</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;producer.transaction.ttl&quot;}">producer.transaction.ttl</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;A timeout after which the transaction is considered as broken/stalled/abandoned and must be purged&quot;}">A timeout after which the transaction is considered as broken/stalled/abandoned and must be purged</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number, seconds between 3 and 15&quot;}">Number, seconds between 3 and 120</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:6}">6</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:6}">30</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Transaction.OPEN_MAXWAIT&quot;}">Transaction.OPEN_MAXWAIT</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;producer.transaction.open-maxwait&quot;}">producer.transaction.open-maxwait</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;An amount of time producer will wait for master to open transaction. If master haven't opened to the moment of timeout then the exception will be raised.&quot;}">An amount of time producer will wait for the master to open transaction. If the master hasn't opened up to the timeout then the exception will be raised.</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number, seconds between 1 and 10&quot;}">Number, seconds between 1 and 10</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:5}">5</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:5}">5</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Transaction.KEEP_ALIVE&quot;}">Transaction.KEEP_ALIVE</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;producer.transaction.keep-alive&quot;}">producer.transaction.keep-alive</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;The interval of time the producer sends keep alive notifications for long-lasting transactions&quot;}">The interval of time the producer sends keep alive notifications for long-lasting transactions</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number, seconds between 1 and 2&quot;}">Number, seconds between 1 and 2</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:1}">1</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:1}">1</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Transaction.DATA_WRITE_BATCH_SIZE&quot;}">Transaction.DATA_WRITE_BATCH_SIZE</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;producer.transaction.data-write-batch-size&quot;}">producer.transaction.data-write-batch-size</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;For better productivity data items inside transactions are written in batches, the parameter specifies how big batches are.&quot;}">For better productivity data items inside transactions are written in batches, the parameter specifies how big batches are.</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number, between 1 and 1000&quot;}">Number, between 1 and 1000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:200}">200</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:100}">1</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Transaction.DISTRIBUTION_POLICY&quot;}">Transaction.DISTRIBUTION_POLICY</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;producer.transaction.distribution-policy&quot;}">producer.transaction.distribution-policy</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;If transaction is opened without specific partition request then distribution policy is used to get next partition. See Transacton.Consts.DISTRIBUTION_POLICY_*&quot;}">If a transaction is opened without specific partition request then distribution policy is used to get next partition. See Transacton.Consts.DISTRIBUTION_POLICY_*</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;TSF_Dictionary.Producer.Transaction.Consts.DISTRIBUTION_POLICY_RR&quot;}"></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;TSF_Dictionary.Producer.Transaction.Consts.DISTRIBUTION_POLICY_RR&quot;}"></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;TSF_Dictionary.Producer.Transaction.Consts.DISTRIBUTION_POLICY_RR&quot;}"></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Transacton.Consts.DISTRIBUTION_POLICY_RR&quot;}">Transaction.Consts.DISTRIBUTION_POLICY_RR</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;round-robin&quot;}">round-robin</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Currently only one distribution policy exists - round robin&quot;}">Currently only one distribution policy exists - round robin</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2>TSF_Dictionary.Consumer keyset</h2>
+The keyset describes options of consumer and subscriber behavior.
+<table dir="ltr" border="1" cellspacing="0" cellpadding="0"><colgroup> <col width="328" /> <col width="313" /> <col width="466" /> <col width="281" /> <col width="104" /> <col width="100" /></colgroup>
+<tbody>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Key&quot;}"><strong>Key</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Textual constant&quot;}"><strong>Textual constant</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Purpose&quot;}"><strong>Purpose</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Domain&quot;}"><strong>Domain</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Example&quot;}"><strong>Example</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Default&quot;}"><strong>Default</strong></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;NAME&quot;}"></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;consumer.name&quot;}"></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;A name of a consumer&quot;}"></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Short string&quot;}"></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;consumer-1&quot;}"></td>
+<td></td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;TRANSACTION_PRELOAD&quot;}"><strong>TRANSACTION_PRELOAD</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;consumer.transaction-preload&quot;}">consumer.transaction-preload</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Amount of transactions for preloading when it reads from Metadata storage&quot;}">Amount of transactions for preloading when it reads from Metadata storage</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 1 and 100&quot;}">Number between 1 and 100</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:10}">10</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:10}">10</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;DATA_PRELOAD&quot;}"><strong>DATA_PRELOAD</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;consumer.data-preload&quot;}">consumer.data-preload</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Amount of data items for preloading when it reads from Data storage&quot;}">Amount of data items for preloading when it reads from Data storage</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 100 and 200&quot;}">Number between 100 and 200</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:200}">200</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:100}">100</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Subscriber.BIND_HOST&quot;}"><strong>Subscriber.BIND_HOST</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;consumer.subscriber.bind-host&quot;}">consumer.subscriber.bind-host</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Host address to bind to&quot;}">Host address to bind to</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;String ipv4 or hostname&quot;}">String ipv4 or hostname</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;1.1.1.1&quot;}">1.1.1.1</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;localhost&quot;}">localhost</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Subscriber.BIND_PORT&quot;}"><strong>Subscriber.BIND_PORT</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;consumer.subscriber.bind-port&quot;}">consumer.subscriber.bind-port</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Host port to bind to&quot;}">Host port to bind to</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number or (from,to)&quot;}">Number or (from,to)</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;(18000, 20000)&quot;}">(18000, 20000)</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:18001}">18001</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Subscriber.PERSISTENT_QUEUE_PATH&quot;}"><strong>Subscriber.PERSISTENT_QUEUE_PATH</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;consumer.subscriber.persistent-queue.path&quot;}">consumer.subscriber.persistent-queue.path</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;The path of the queue that stores ready but not yet handled transactions&quot;}">The path of the queue that stores ready but not yet handled transactions</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Valid path or null&quot;}">Valid path or null</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;/tmp/consumer-1&quot;}">/tmp/consumer-1</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;/tmp&quot;}">/tmp</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Subscriber.TRANSACTION_BUFFER_THREAD_POOL&quot;}"><strong>Subscriber.TRANSACTION_BUFFER_THREAD_POOL</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;consumer.subscriber.transaction-buffer-thread-pool&quot;}">consumer.subscriber.transaction-buffer-thread-pool</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Amount of threads that are used for managing transactions buffers&quot;}">Amount of threads that are used for managing transactions buffers</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 1 and 64&quot;}">Number between 1 and 64</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:16}">16</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:4}">4</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Subscriber.PROCESSING_ENGINES_THREAD_POOL&quot;}"><strong>Subscriber.PROCESSING_ENGINES_THREAD_POOL</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;consumer.subscriber.processing-engines-thread-pool&quot;}">consumer.subscriber.processing-engines-thread-pool</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Amount of threads that are used for managing ready transactions&quot;}">Amount of threads that are used for managing ready transactions</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number between 1 and 64&quot;}">Number between 1 and 64</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:16}">16</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:1}">1</td>
+</tr>
+<tr>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Subscriber.POLLING_FREQUENCY_DELAY&quot;}"><strong>Subscriber.POLLING_FREQUENCY_DELAY</strong></td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;consumer.subscriber.polling-frequency-delay&quot;}">consumer.subscriber.polling-frequency-delay</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;An Interval that specifies how often polling should be launched if no new events.&quot;}">An Interval that specifies how often polling should be launched if no new events.</td>
+<td data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Number, milliseconds between 100 and 100000&quot;}">Number, milliseconds between 100 and 100000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:1000}">1000</td>
+<td data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:1000}">1000</td>
+</tr>
+</tbody>
+</table>
